@@ -12,7 +12,7 @@
 - Clone the repository to your local system.
 - Setup a virtual environment.
 - Download and create a neo4j database
-- Create and save your neo4j database access credentials in a .env file and load them in the main.py 
+- Save your neo4j database access credentials in a .env file and load them in the main.py 
 
 ```bash
 # for linux users 
