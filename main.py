@@ -1,13 +1,16 @@
 from graph_processor.element_filter import filter_physical_elements
 from graph_processor.neo4j_store import save_to_neo4j
+from dotenv import load_dotenv
+import os
 
 
 def main():
     # Configuration
-    ifc_file_path = "test_model.ifc"  # Update with your file path
-    neo4j_uri = "bolt://localhost:7687"        # Update with your Neo4j URI
-    neo4j_user = "neo4j"                       # Update with your username
-    neo4j_password = "4central"                # Update with your password
+    load_dotenv()
+    ifc_file_path =os.getenv("IFC_FILE_PATH")  # Update with your file path
+    neo4j_uri = os.getenv('NEO4J_URI')        # Update with your Neo4j URI
+    neo4j_user =os.getenv('NEO4J_USER')                       # Update with your username
+    neo4j_password =os.getenv('NEO4J_PASSWORD')                # Update with your password
     
     # Filter elements
     filtered_elements, ifc_file = filter_physical_elements(ifc_file_path)
