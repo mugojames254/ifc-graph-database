@@ -1,3 +1,9 @@
-ifcopenshell 
+# Core dependencies
+ifcopenshell
 neo4j
-requests
+python-dotenv
+pyyaml
+
+# Testing
+pytest
+pytest-mock
