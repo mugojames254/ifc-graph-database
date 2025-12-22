@@ -2,7 +2,7 @@
 
 A Python tool that extracts building elements from IFC (Industry Foundation Classes) BIM model files and stores them in a Neo4j graph database. The tool filters physical entities (walls, doors, windows, columns, etc.) to create a structured graph representation of building components and their relationships.
 
-![Neo4j Graph Data](./images/ifc-to-graph.png)
+![Neo4j Graph Data](https://raw.githubusercontent.com/mugojames254/ifc-graph-database/main/images/ifc-to-graph.png)
 
 ## Features
 
