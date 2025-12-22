@@ -74,5 +74,6 @@ config.yaml
 #python files 
 chatbot.py
 
-#redundant files 
-.md:Zone.Identifier
+#windows zone identifier files
+.Identifier
+*:Zone.Identifier
