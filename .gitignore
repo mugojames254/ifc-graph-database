@@ -75,4 +75,4 @@ config.yaml
 chatbot.py
 
 #redundant files 
-.Identifier
+.md:Zone.Identifier
