@@ -13,6 +13,7 @@ A Python tool that extracts building elements from IFC (Industry Foundation Clas
 - **Robust Error Handling**: Graceful handling of invalid files and connection issues
 - **CLI Interface**: Full command-line interface with multiple options
 - **Dry Run Mode**: Preview what would be imported without modifying the database
+- **Python Library**: Use as a library in your own Python projects
 
 ## Prerequisites
 
@@ -22,52 +23,27 @@ A Python tool that extracts building elements from IFC (Industry Foundation Clas
 
 ## Installation
 
-### 1. Clone the Repository
+### From PyPI (Recommended)
 
 ```bash
-git clone https://github.com/yourusername/ifc-graph-database.git
+pip install ifc-graph
+```
+
+### From Source
+
+```bash
+git clone https://github.com/mugojames254/ifc-graph-database.git
 cd ifc-graph-database
+pip install -e .
 ```
 
-### 2. Set Up Virtual Environment
-
-#### Linux/macOS
+### With Development Dependencies
 
 ```bash
-# Create virtual environment
-python -m venv your-virtual-environment-name
-
-# Activate the environment
-source your-virtual-environment-name/bin/activate
+pip install -e ".[dev]"
 ```
 
-#### Windows (Command Prompt)
-
-```cmd
-# Create virtual environment
-python -m venv your-virtual-environment-name
-
-# Activate the environment
-your-virtual-environment-name\Scripts\activate.bat
-```
-
-#### Windows (PowerShell)
-
-```powershell
-# Create virtual environment
-python -m venv your-virtual-environment-name
-
-# Activate the environment
-your-virtual-environment-name\Scripts\Activate.ps1
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure Environment Variables
+### Configure Environment Variables
 
 Create a `.env` file in the project root (you can copy from the example):
 
@@ -84,9 +60,13 @@ NEO4J_PASSWORD=your_password_here
 IFC_FILE_PATH=./test_model.ifc
 ```
 
-### 5. Configure Element Types (Optional)
+### Configure Element Types (Optional)
 
-Edit `config.yaml` to customize which IFC element types to extract:
+Copy and edit `config.yaml.example` to customize which IFC element types to extract:
+
+```bash
+cp config.yaml.example config.yaml
+```
 
 ```yaml
 element_types:
@@ -106,43 +86,63 @@ extraction:
 
 ## Usage
 
-### Basic Usage
-
-Run with default settings from `.env` and `config.yaml`:
+### As a Command-Line Tool
 
 ```bash
-python main.py
-```
+# Basic usage
+ifc-graph --ifc-file path/to/model.ifc
 
-### Command-Line Options
-
-```bash
-# Process a specific IFC file
-python main.py --ifc-file path/to/model.ifc
-
-# Clear database before importing (WARNING: deletes all existing data)
-python main.py --clear-db
-
-# Use a custom configuration file
-python main.py --config custom_config.yaml
+# With all options
+ifc-graph --ifc-file model.ifc --clear-db --log-level DEBUG
 
 # Preview what would be imported (no database changes)
-python main.py --dry-run
+ifc-graph --ifc-file model.ifc --dry-run
 
-# Set logging level
-python main.py --log-level DEBUG
+# Use a custom configuration file
+ifc-graph --config custom_config.yaml --ifc-file model.ifc
 
 # Override Neo4j connection (useful for different environments)
-python main.py --neo4j-uri bolt://production:7687 --neo4j-user admin --neo4j-password secret
+ifc-graph --neo4j-uri bolt://production:7687 --neo4j-user admin --neo4j-password secret --ifc-file model.ifc
+```
+
+### As a Python Library
+
+```python
+from ifc_graph import IFCElementFilter, Neo4jConnection, save_to_neo4j, filter_physical_elements
+
+# Option 1: Using the IFCElementFilter class
+filter = IFCElementFilter("path/to/model.ifc")
+elements, ifc_file = filter.extract_elements(element_types=['IfcWall', 'IfcDoor'])
+
+# Option 2: Using the function directly
+elements, ifc_file = filter_physical_elements(
+    "path/to/model.ifc",
+    element_types=['IfcWall', 'IfcDoor', 'IfcWindow']
+)
+
+# Store in Neo4j
+stats = save_to_neo4j(
+    elements,
+    ifc_file,
+    uri="bolt://localhost:7687",
+    username="neo4j",
+    password="your_password",
+    clear_db=False  # Set to True to clear existing data
+)
+
+print(f"Created {stats['elements']} elements")
+print(f"Created {stats['structures']} structures")
+print(f"Linked {stats['materials']} materials")
 ```
 
 ### Full CLI Reference
 
 ```
-usage: main.py [-h] [--ifc-file IFC_FILE] [--config CONFIG] [--clear-db]
-               [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER]
-               [--neo4j-password NEO4J_PASSWORD]
-               [--log-level {DEBUG,INFO,WARNING,ERROR}] [--dry-run]
+usage: ifc-graph [-h] [--ifc-file IFC_FILE] [--config CONFIG] [--clear-db]
+                 [--neo4j-uri NEO4J_URI] [--neo4j-user NEO4J_USER]
+                 [--neo4j-password NEO4J_PASSWORD]
+                 [--log-level {DEBUG,INFO,WARNING,ERROR}] [--dry-run]
+                 [--version]
 
 Options:
   --ifc-file        Path to the IFC file to process
@@ -153,28 +153,35 @@ Options:
   --neo4j-password  Neo4j password
   --log-level       Logging level (DEBUG, INFO, WARNING, ERROR)
   --dry-run         Preview import without database changes
+  --version         Show version and exit
 ```
 
 ## Project Structure
 
 ```
 ifc-graph-database/
-├── main.py                    # Main entry point with CLI
-├── config.yaml                # Element types and extraction settings
-├── requirements.txt           # Python dependencies
-├── .env.example               # Environment variables template
-├── graph_processor/
-│   ├── __init__.py
-│   ├── element_filter.py      # IFC file parsing and element extraction
-│   ├── neo4j_store.py         # Database operations with batch processing
-│   └── query_loader.py        # Loads Cypher queries from files
-└── cypher_queries/            # External Cypher query files
-    ├── clear_database.cypher
-    ├── create_project.cypher
-    ├── create_elements_batch.cypher
-    ├── create_structures_batch.cypher
-    ├── create_materials_batch.cypher
-    └── ...
+├── src/
+│   └── ifc_graph/
+│       ├── __init__.py            # Package exports
+│       ├── cli.py                 # Command-line interface
+│       ├── element_filter.py      # IFC file parsing and element extraction
+│       ├── neo4j_store.py         # Database operations with batch processing
+│       ├── query_loader.py        # Loads Cypher queries from files
+│       └── cypher_queries/        # Cypher query files
+│           ├── clear_database.cypher
+│           ├── create_project.cypher
+│           ├── create_elements_batch.cypher
+│           └── ...
+├── tests/                         # Test files
+│   ├── conftest.py
+│   ├── test_element_filter.py
+│   ├── test_neo4j_store.py
+│   └── test_query_loader.py
+├── pyproject.toml                 # Package configuration
+├── config.yaml.example            # Example configuration
+├── .env.example                   # Environment variables template
+├── README.md
+└── LICENSE
 ```
 
 ## Graph Model

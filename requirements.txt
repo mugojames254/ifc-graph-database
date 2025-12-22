@@ -1,9 +1,0 @@
-# Core dependencies
-ifcopenshell
-neo4j
-python-dotenv
-pyyaml
-
-# Testing
-pytest
-pytest-mock

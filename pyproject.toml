@@ -1,0 +1,100 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ifc-graph"
+version = "0.1.0"
+description = "Convert IFC BIM models to Neo4j graph database for querying building information"
+readme = "README.md"
+license = "MIT"
+authors = [
+    {name = "James Mugo", email = "deeplearningcentral@gmail.com"}
+]
+maintainers = [
+    {name = "James Mugo", email = "deeplearningcentral@gmail.com"}
+]
+keywords = [
+    "ifc",
+    "bim",
+    "neo4j",
+    "graph-database",
+    "building-information-modeling",
+    "architecture",
+    "construction",
+    "aec",
+    "ifcopenshell"
+]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "Operating System :: OS Independent",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+requires-python = ">=3.9"
+dependencies = [
+    "ifcopenshell>=0.7.0",
+    "neo4j>=5.0.0",
+    "pyyaml>=6.0",
+    "python-dotenv>=1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-cov>=4.0",
+    "pytest-mock>=3.0",
+    "black>=23.0",
+    "ruff>=0.1.0",
+    "mypy>=1.0",
+]
+docs = [
+    "sphinx>=6.0",
+    "sphinx-rtd-theme>=1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/mugojames254/ifc-graph-database"
+Documentation = "https://github.com/mugojames254/ifc-graph-database#readme"
+Repository = "https://github.com/mugojames254/ifc-graph-database"
+Issues = "https://github.com/mugojames254/ifc-graph-database/issues"
+Changelog = "https://github.com/mugojames254/ifc-graph-database/releases"
+
+[project.scripts]
+ifc-graph = "ifc_graph.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+ifc_graph = ["cypher_queries/*.cypher"]
+
+[tool.black]
+line-length = 88
+target-version = ["py39", "py310", "py311", "py312"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+select = ["E", "F", "I", "N", "W", "UP"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "-v --cov=ifc_graph --cov-report=term-missing"
+
+[tool.mypy]
+python_version = "3.9"
+warn_return_any = true
+warn_unused_configs = true
+ignore_missing_imports = true

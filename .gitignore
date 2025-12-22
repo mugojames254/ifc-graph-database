@@ -1,7 +1,7 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
-*.class
+*$py.class
 
 # C extensions
 *.so
@@ -35,14 +35,16 @@ pip-delete-this-directory.txt
 # Unit test / coverage reports
 htmlcov/
 .tox/
+.nox/
 .coverage
 .coverage.*
 .cache
 nosetests.xml
 coverage.xml
 *.cover
+*.py,cover
 .hypothesis/
-tests/
+.pytest_cache/
 
 # Environments
 .env
@@ -53,13 +55,18 @@ ENV/
 env.bak/
 venv.bak/
 
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
 # IDE files
 .idea/
 .vscode/
 *.swp
 *.swo
 
-# python files 
-
-setup.py
-chatbot.py
+# Project specific
+*.ifc
+!tests/fixtures/*.ifc
+config.yaml

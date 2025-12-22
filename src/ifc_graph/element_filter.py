@@ -24,6 +24,62 @@ class IFCValidationError(Exception):
     pass
 
 
+class IFCElementFilter:
+    """
+    Filter and extract elements from IFC files.
+    
+    This class provides a convenient interface for loading IFC files
+    and extracting elements with their properties.
+    """
+    
+    def __init__(self, file_path: str, config: Optional[dict] = None):
+        """
+        Initialize the IFC element filter.
+        
+        Args:
+            file_path: Path to the IFC file
+            config: Optional extraction configuration
+        """
+        self.file_path = file_path
+        self.config = config or {
+            'include_property_sets': True,
+            'include_materials': True,
+            'max_properties_per_element': 50,
+        }
+        self._ifc_file = None
+    
+    def load(self) -> ifcopenshell.file:
+        """Load the IFC file."""
+        self._ifc_file = load_ifc_file(self.file_path)
+        return self._ifc_file
+    
+    @property
+    def ifc_file(self) -> ifcopenshell.file:
+        """Get the loaded IFC file, loading it if necessary."""
+        if self._ifc_file is None:
+            self.load()
+        return self._ifc_file
+    
+    def extract_elements(
+        self, 
+        element_types: Optional[list[str]] = None
+    ) -> tuple[dict, ifcopenshell.file]:
+        """
+        Extract elements from the IFC file.
+        
+        Args:
+            element_types: List of IFC element types to extract
+        
+        Returns:
+            Tuple of (filtered_elements dictionary, ifc_file object)
+        """
+        return filter_physical_elements(
+            self.file_path,
+            element_types=element_types,
+            config=self.config
+        )
+
+
 def validate_ifc_file(file_path: str) -> None:
     """
     Validate that an IFC file exists and is accessible.

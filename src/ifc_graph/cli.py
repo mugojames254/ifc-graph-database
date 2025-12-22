@@ -1,6 +1,5 @@
-#!/usr/bin/env python3
 """
-IFC Graph Database - Main Entry Point
+Command-line interface for IFC Graph Database.
 
 Processes IFC files and stores building elements in a Neo4j graph database.
 Supports configuration via YAML file and command-line arguments.
@@ -8,20 +7,20 @@ Supports configuration via YAML file and command-line arguments.
 
 import argparse
 import logging
+import os
 import sys
 from pathlib import Path
 from typing import Optional
 
 import yaml
 from dotenv import load_dotenv
-import os
 
-from graph_processor.element_filter import (
+from .element_filter import (
     filter_physical_elements,
     IFCLoadError,
     IFCValidationError,
 )
-from graph_processor.neo4j_store import (
+from .neo4j_store import (
     save_to_neo4j,
     DatabaseConnectionError,
     DatabaseOperationError,
@@ -106,6 +105,12 @@ def get_default_config() -> dict:
     }
 
 
+def get_version() -> str:
+    """Get the package version."""
+    from . import __version__
+    return __version__
+
+
 def parse_arguments() -> argparse.Namespace:
     """
     Parse command-line arguments.
@@ -114,6 +119,7 @@ def parse_arguments() -> argparse.Namespace:
         Parsed arguments namespace
     """
     parser = argparse.ArgumentParser(
+        prog="ifc-graph",
         description="Process IFC files and store building elements in Neo4j graph database.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
@@ -122,6 +128,7 @@ Examples:
   %(prog)s --ifc-file model.ifc      # Process specific IFC file
   %(prog)s --clear-db                # Clear database before import
   %(prog)s --config custom.yaml      # Use custom configuration file
+  %(prog)s --dry-run                 # Preview import without database changes
         """
     )
     
@@ -173,6 +180,12 @@ Examples:
         '--dry-run',
         action='store_true',
         help='Parse IFC file and show what would be imported, but do not connect to database'
+    )
+    
+    parser.add_argument(
+        '--version',
+        action='version',
+        version=f'%(prog)s {get_version()}'
     )
     
     return parser.parse_args()
@@ -302,6 +315,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     sys.exit(main())
-
-
-    
