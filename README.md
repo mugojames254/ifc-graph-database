@@ -1,8 +1,18 @@
 # IFC Graph Database
 
+[![Documentation](https://img.shields.io/badge/docs-mkdocs-blue.svg)](https://mugojames254.github.io/ifc-graph-database/)
+[![PyPI version](https://img.shields.io/pypi/v/ifc-graph.svg)](https://pypi.org/project/ifc-graph/)
+[![Python Version](https://img.shields.io/pypi/pyversions/ifc-graph.svg)](https://pypi.org/project/ifc-graph/)
+[![License](https://img.shields.io/pypi/l/ifc-graph.svg)](https://github.com/mugojames254/ifc-graph-database/blob/main/LICENSE)
+
+
 A Python tool that extracts building elements from IFC (Industry Foundation Classes) BIM model files and stores them in a Neo4j graph database. The tool filters physical entities (walls, doors, windows, columns, etc.) to create a structured graph representation of building components and their relationships.
 
 ![Neo4j Graph Data](https://raw.githubusercontent.com/mugojames254/ifc-graph-database/main/images/ifc-to-graph.png)
+
+## Documentation
+
+Full documentation is available at: **https://mugojames254.github.io/ifc-graph-database/**
 
 ## Features
 

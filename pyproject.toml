@@ -56,13 +56,16 @@ dev = [
     "mypy>=1.0",
 ]
 docs = [
-    "sphinx>=6.0",
-    "sphinx-rtd-theme>=1.0",
+    "mkdocs>=1.5.0",
+    "mkdocs-material>=9.0.0",
+    "mkdocstrings[python]>=0.24.0",
+    "mkdocs-gen-files>=0.5.0",
+    "mkdocs-literate-nav>=0.6.0",
 ]
 
 [project.urls]
 Homepage = "https://github.com/mugojames254/ifc-graph-database"
-Documentation = "https://github.com/mugojames254/ifc-graph-database#readme"
+Documentation = "https://mugojames254.github.io/ifc-graph-database/"
 Repository = "https://github.com/mugojames254/ifc-graph-database"
 Issues = "https://github.com/mugojames254/ifc-graph-database/issues"
 Changelog = "https://github.com/mugojames254/ifc-graph-database/releases"

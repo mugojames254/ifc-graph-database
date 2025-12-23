@@ -130,7 +130,7 @@ def load_ifc_file(file_path: str) -> ifcopenshell.file:
         raise IFCLoadError(f"Failed to load IFC file: {file_path}. Error: {e}") from e
 
 
-def extract_element_properties(element, config: dict) -> dict[str, Any]:
+def extract_element_properties(element: Any, config: dict) -> dict[str, Any]:
     """
     Extract properties from an IFC element for graph storage.
     
@@ -154,7 +154,7 @@ def extract_element_properties(element, config: dict) -> dict[str, Any]:
     return props
 
 
-def extract_spatial_info(element) -> list[dict]:
+def extract_spatial_info(element: Any) -> list[dict]:
     """
     Extract spatial containment information for an element.
     
@@ -194,7 +194,7 @@ def _get_elevation(structure) -> Optional[float]:
     return None
 
 
-def extract_material_info(element) -> list[dict]:
+def extract_material_info(element: Any) -> list[dict]:
     """
     Extract material information for an element.
     
@@ -263,7 +263,7 @@ def _process_material(material_select, element) -> list[dict]:
     return materials
 
 
-def extract_property_sets(element, max_properties: int = 50) -> list[dict]:
+def extract_property_sets(element: Any, max_properties: int = 50) -> list[dict]:
     """
     Extract property sets for an element.
     

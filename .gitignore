@@ -77,3 +77,7 @@ chatbot.py
 #windows zone identifier files
 .Identifier
 *:Zone.Identifier
+
+# documentation 
+/docs
+mkdocs.yml

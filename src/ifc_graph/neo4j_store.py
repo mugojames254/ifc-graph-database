@@ -369,7 +369,7 @@ def create_metadata(session, data: dict) -> None:
 
 def save_to_neo4j(
     filtered_elements: dict,
-    ifc_file,
+    ifc_file: Any,
     uri: str,
     username: str,
     password: str,
