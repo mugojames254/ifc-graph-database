@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "ifc-graph"
-version = "0.1.1"
+version = "0.1.2"
 description = "Convert IFC BIM models to Neo4j graph database for querying building information"
 readme = "README.md"
 license = "MIT"
