@@ -26,7 +26,7 @@ from .query_loader import QueryLoader, load_query
 
 __version__ = "0.1.0"
 __author__ = "James Mugo"
-__email__ = "mugojames254@gmail.com"
+__email__ = "deeplearningcentral@gmail.com"
 
 __all__ = [
     # Element Filter
