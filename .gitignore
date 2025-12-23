@@ -79,5 +79,6 @@ chatbot.py
 *:Zone.Identifier
 
 # documentation 
-/docs
+docs/
 mkdocs.yml
+site/
