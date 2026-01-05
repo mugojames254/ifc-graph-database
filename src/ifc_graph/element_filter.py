@@ -13,6 +13,25 @@ import ifcopenshell
 
 logger = logging.getLogger(__name__)
 
+# Key properties to flatten onto Element nodes (common Pset_* properties)
+KEY_PROPERTIES = {
+    'IsExternal', 'LoadBearing', 'FireRating', 'ThermalTransmittance',
+    'AcousticRating', 'Reference', 'Status', 'Combustible', 'SurfaceSpreadOfFlame'
+}
+
+# Quantity mappings by element type prefix
+QUANTITY_MAPPINGS = {
+    'IfcWall': ['Width', 'Height', 'Length', 'GrossArea', 'NetArea', 'GrossVolume'],
+    'IfcSlab': ['Width', 'GrossArea', 'NetArea', 'GrossVolume', 'Perimeter'],
+    'IfcDoor': ['Height', 'Width', 'Area'],
+    'IfcWindow': ['Height', 'Width', 'Area'],
+    'IfcBeam': ['Length', 'CrossSectionArea', 'GrossVolume', 'NetVolume'],
+    'IfcColumn': ['Length', 'CrossSectionArea', 'GrossVolume', 'NetVolume'],
+    'IfcSpace': ['GrossFloorArea', 'NetFloorArea', 'GrossVolume', 'NetVolume', 'Height'],
+    'IfcRoof': ['GrossArea', 'NetArea', 'GrossVolume'],
+    'IfcStair': ['NumberOfRiser', 'NumberOfTreads', 'RiserHeight', 'TreadLength'],
+}
+
 
 class IFCLoadError(Exception):
     """Raised when there's an error loading an IFC file."""
@@ -133,6 +152,7 @@ def load_ifc_file(file_path: str) -> ifcopenshell.file:
 def extract_element_properties(element: Any, config: dict) -> dict[str, Any]:
     """
     Extract properties from an IFC element for graph storage.
+    Includes key properties and quantities flattened onto the element.
     
     Args:
         element: IFC element to extract properties from
@@ -151,7 +171,98 @@ def extract_element_properties(element: Any, config: dict) -> dict[str, Any]:
         'tag': getattr(element, 'Tag', None) or '',
     }
     
+    # For IfcSpace, also extract LongName
+    if element.is_a('IfcSpace'):
+        props['long_name'] = getattr(element, 'LongName', None) or ''
+    
+    # Extract key properties and quantities directly onto element
+    if config.get('include_property_sets', True):
+        key_props = _extract_key_properties(element)
+        props.update(key_props)
+        
+        quantities = _extract_quantities(element)
+        props.update(quantities)
+    
     return props
+
+
+def _extract_key_properties(element: Any) -> dict[str, Any]:
+    """Extract commonly-queried properties directly from property sets."""
+    props = {}
+    try:
+        if not hasattr(element, 'IsDefinedBy'):
+            return props
+        for definition in element.IsDefinedBy:
+            if not definition.is_a('IfcRelDefinesByProperties'):
+                continue
+            prop_def = definition.RelatingPropertyDefinition
+            if not prop_def.is_a('IfcPropertySet'):
+                continue
+            if not hasattr(prop_def, 'HasProperties'):
+                continue
+            for prop in prop_def.HasProperties:
+                if prop.Name in KEY_PROPERTIES:
+                    value = _get_property_value(prop)
+                    if value is not None:
+                        props[prop.Name] = value
+    except Exception as e:
+        logger.debug(f"Error extracting key properties for {element.id()}: {e}")
+    return props
+
+
+def _extract_quantities(element: Any) -> dict[str, Any]:
+    """Extract quantities (dimensions) from IfcElementQuantity."""
+    quantities = {}
+    elem_type = element.is_a()
+    
+    # Find matching quantity names for this element type
+    relevant_quantities = set()
+    for type_prefix, qty_names in QUANTITY_MAPPINGS.items():
+        if elem_type.startswith(type_prefix):
+            relevant_quantities.update(qty_names)
+            break
+    
+    if not relevant_quantities:
+        return quantities
+    
+    try:
+        if not hasattr(element, 'IsDefinedBy'):
+            return quantities
+        for definition in element.IsDefinedBy:
+            if not definition.is_a('IfcRelDefinesByProperties'):
+                continue
+            prop_def = definition.RelatingPropertyDefinition
+            if not prop_def.is_a('IfcElementQuantity'):
+                continue
+            if not hasattr(prop_def, 'Quantities'):
+                continue
+            for qty in prop_def.Quantities:
+                if qty.Name not in relevant_quantities:
+                    continue
+                value = _get_quantity_value(qty)
+                if value is not None:
+                    quantities[qty.Name] = value
+    except Exception as e:
+        logger.debug(f"Error extracting quantities for {element.id()}: {e}")
+    return quantities
+
+
+def _get_quantity_value(qty) -> Optional[float]:
+    """Extract numeric value from an IFC quantity."""
+    try:
+        if qty.is_a('IfcQuantityLength'):
+            return float(qty.LengthValue) if qty.LengthValue is not None else None
+        elif qty.is_a('IfcQuantityArea'):
+            return float(qty.AreaValue) if qty.AreaValue is not None else None
+        elif qty.is_a('IfcQuantityVolume'):
+            return float(qty.VolumeValue) if qty.VolumeValue is not None else None
+        elif qty.is_a('IfcQuantityWeight'):
+            return float(qty.WeightValue) if qty.WeightValue is not None else None
+        elif qty.is_a('IfcQuantityCount'):
+            return float(qty.CountValue) if qty.CountValue is not None else None
+    except (TypeError, ValueError):
+        pass
+    return None
 
 
 def extract_spatial_info(element: Any) -> list[dict]:
@@ -192,6 +303,77 @@ def _get_elevation(structure) -> Optional[float]:
     except (TypeError, ValueError):
         pass
     return None
+
+
+def extract_spatial_hierarchy(ifc_file) -> list[dict]:
+    """
+    Extract spatial hierarchy relationships from IfcRelAggregates.
+    Returns list of parent->child relationships for Site->Building->Storey->Space.
+    
+    Args:
+        ifc_file: Loaded IFC file object
+    
+    Returns:
+        List of dicts with parent/child info and relationship data
+    """
+    hierarchy = []
+    spatial_types = {'IfcSite', 'IfcBuilding', 'IfcBuildingStorey', 'IfcSpace'}
+    
+    try:
+        for rel in ifc_file.by_type('IfcRelAggregates'):
+            parent = rel.RelatingObject
+            if parent is None or parent.is_a() not in spatial_types:
+                continue
+            
+            for child in (rel.RelatedObjects or []):
+                if child is None or child.is_a() not in spatial_types:
+                    continue
+                hierarchy.append({
+                    'parent_id': str(parent.id()),
+                    'parent_type': parent.is_a(),
+                    'parent_name': getattr(parent, 'Name', None) or 'Unnamed',
+                    'child_id': str(child.id()),
+                    'child_type': child.is_a(),
+                    'child_name': getattr(child, 'Name', None) or 'Unnamed',
+                })
+    except Exception as e:
+        logger.debug(f"Error extracting spatial hierarchy: {e}")
+    
+    return hierarchy
+
+
+def extract_all_structures(ifc_file) -> list[dict]:
+    """
+    Extract all spatial structure elements (Site, Building, Storey, Space).
+    
+    Args:
+        ifc_file: Loaded IFC file object
+    
+    Returns:
+        List of structure dictionaries
+    """
+    structures = []
+    spatial_types = ['IfcSite', 'IfcBuilding', 'IfcBuildingStorey', 'IfcSpace']
+    
+    for spatial_type in spatial_types:
+        try:
+            for structure in ifc_file.by_type(spatial_type):
+                struct_data = {
+                    'id': str(structure.id()),
+                    'name': getattr(structure, 'Name', None) or 'Unnamed',
+                    'type': structure.is_a(),
+                    'long_name': getattr(structure, 'LongName', None) or '',
+                    'elevation': _get_elevation(structure),
+                }
+                # For spaces, extract floor area quantities
+                if spatial_type == 'IfcSpace':
+                    quantities = _extract_quantities(structure)
+                    struct_data.update(quantities)
+                structures.append(struct_data)
+        except Exception as e:
+            logger.debug(f"Error extracting {spatial_type}: {e}")
+    
+    return structures
 
 
 def extract_material_info(element: Any) -> list[dict]:
@@ -358,7 +540,8 @@ def filter_physical_elements(
             'IfcSlab',
             'IfcRoof',
             'IfcColumn',
-            'IfcBeam'
+            'IfcBeam',
+            'IfcSpace',
         ]
     
     if config is None:

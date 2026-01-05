@@ -15,6 +15,8 @@ from .element_filter import (
     extract_spatial_info,
     extract_material_info,
     extract_property_sets,
+    extract_spatial_hierarchy,
+    extract_all_structures,
 )
 from .neo4j_store import (
     Neo4jConnection,
@@ -39,6 +41,8 @@ __all__ = [
     "extract_spatial_info",
     "extract_material_info",
     "extract_property_sets",
+    "extract_spatial_hierarchy",
+    "extract_all_structures",
     # Neo4j Store
     "Neo4jConnection",
     "DatabaseConnectionError",

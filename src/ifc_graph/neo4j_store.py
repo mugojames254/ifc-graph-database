@@ -23,6 +23,8 @@ from .element_filter import (
     extract_spatial_info,
     extract_material_info,
     extract_property_sets,
+    extract_spatial_hierarchy,
+    extract_all_structures,
 )
 
 logger = logging.getLogger(__name__)
@@ -250,6 +252,9 @@ def batch_create_structures(session, spatial_info: list[dict], batch_size: int =
                 'type': info.get('type', ''),
                 'long_name': info.get('long_name', ''),
                 'elevation': info.get('elevation'),
+                # Include any additional properties (quantities for spaces)
+                **{k: v for k, v in info.items() 
+                   if k not in ('id', 'name', 'type', 'long_name', 'elevation', 'element_id')}
             }
     
     structures = list(unique_structures.values())
@@ -261,6 +266,56 @@ def batch_create_structures(session, spatial_info: list[dict], batch_size: int =
     
     logger.info(f"Created {len(structures)} structure nodes")
     return len(structures)
+
+
+def batch_create_all_structures(session, ifc_file, batch_size: int = 500) -> int:
+    """
+    Create all spatial structure nodes from IFC file.
+    
+    Args:
+        session: Neo4j session
+        ifc_file: Loaded IFC file object
+        batch_size: Number of structures per batch
+    
+    Returns:
+        Number of structures created
+    """
+    structures = extract_all_structures(ifc_file)
+    if not structures:
+        return 0
+    
+    query = load_query("create_structures_batch")
+    for i in range(0, len(structures), batch_size):
+        batch = structures[i:i + batch_size]
+        session.run(query, structures=batch)
+    
+    logger.info(f"Created {len(structures)} spatial structure nodes")
+    return len(structures)
+
+
+def batch_create_spatial_hierarchy(session, ifc_file, batch_size: int = 500) -> int:
+    """
+    Create AGGREGATES relationships for spatial hierarchy.
+    
+    Args:
+        session: Neo4j session
+        ifc_file: Loaded IFC file object
+        batch_size: Number of relationships per batch
+    
+    Returns:
+        Number of hierarchy relationships created
+    """
+    hierarchy = extract_spatial_hierarchy(ifc_file)
+    if not hierarchy:
+        return 0
+    
+    query = load_query("create_aggregates_batch")
+    for i in range(0, len(hierarchy), batch_size):
+        batch = hierarchy[i:i + batch_size]
+        session.run(query, aggregates=batch)
+    
+    logger.info(f"Created {len(hierarchy)} spatial hierarchy relationships")
+    return len(hierarchy)
 
 
 def batch_create_project_relationships(
@@ -367,6 +422,34 @@ def create_metadata(session, data: dict) -> None:
     logger.info("Created metadata node")
 
 
+def batch_create_property_sets(
+    session,
+    property_sets: list[dict],
+    batch_size: int = 500
+) -> int:
+    """
+    Batch create PropertySet nodes and HAS_PROPERTY_SET relationships.
+    
+    Args:
+        session: Neo4j session
+        property_sets: List of property set info dictionaries
+        batch_size: Number of property sets per batch
+    
+    Returns:
+        Number of property sets created
+    """
+    if not property_sets:
+        return 0
+    
+    query = load_query("create_property_sets_batch")
+    for i in range(0, len(property_sets), batch_size):
+        batch = property_sets[i:i + batch_size]
+        session.run(query, property_sets=batch)
+    
+    logger.info(f"Created {len(property_sets)} property set nodes")
+    return len(property_sets)
+
+
 def save_to_neo4j(
     filtered_elements: dict,
     ifc_file: Any,
@@ -408,6 +491,7 @@ def save_to_neo4j(
         'structures': 0,
         'materials': 0,
         'property_sets': 0,
+        'hierarchy_relations': 0,
     }
     
     try:
@@ -421,9 +505,16 @@ def save_to_neo4j(
                 project = ifc_file.by_type("IfcProject")[0]
                 project_id = create_project_node(session, project)
                 
+                # Create all spatial structures first (Site, Building, Storey, Space)
+                stats['structures'] = batch_create_all_structures(session, ifc_file)
+                
+                # Create spatial hierarchy (AGGREGATES relationships)
+                stats['hierarchy_relations'] = batch_create_spatial_hierarchy(session, ifc_file)
+                
                 # Process all elements
                 all_spatial_info = []
                 all_materials = []
+                all_property_sets = []
                 all_element_ids = []
                 
                 for element_type, elements in filtered_elements.items():
@@ -436,6 +527,7 @@ def save_to_neo4j(
                     stats['elements'] += count
                     all_spatial_info.extend(spatial)
                     all_materials.extend(materials)
+                    all_property_sets.extend(psets)
                     
                     # Collect element IDs for project relationships
                     for elem in elements:
@@ -444,12 +536,15 @@ def save_to_neo4j(
                 # Create relationships
                 batch_create_project_relationships(session, project_id, all_element_ids)
                 
-                # Create structures and their relationships
-                stats['structures'] = batch_create_structures(session, all_spatial_info)
+                # Create structure->element containment relationships
                 batch_create_structure_relationships(session, all_spatial_info)
                 
                 # Create materials
                 stats['materials'] = batch_create_materials(session, all_materials)
+                
+                # Create property sets
+                if config.get('include_property_sets', True) and all_property_sets:
+                    stats['property_sets'] = batch_create_property_sets(session, all_property_sets)
                 
                 # Create metadata
                 duration = time.time() - start_time

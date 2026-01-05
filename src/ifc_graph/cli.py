@@ -91,7 +91,8 @@ def get_default_config() -> dict:
             'IfcSlab',
             'IfcRoof',
             'IfcColumn',
-            'IfcBeam'
+            'IfcBeam',
+            'IfcSpace',
         ],
         'extraction': {
             'include_property_sets': True,
