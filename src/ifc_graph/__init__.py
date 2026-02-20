@@ -26,7 +26,7 @@ from .neo4j_store import (
 )
 from .query_loader import QueryLoader, load_query
 
-__version__ = "0.1.0"
+__version__ = "0.1.3"
 __author__ = "James Mugo"
 __email__ = "deeplearningcentral@gmail.com"
 

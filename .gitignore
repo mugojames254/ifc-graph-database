@@ -83,3 +83,5 @@ docs/
 mkdocs.yml
 site/
 ifc_data/
+python_files
+tests/
